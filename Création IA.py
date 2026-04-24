@@ -120,7 +120,7 @@ class Embedding:
         return self.table[token_id]
 
 def dot_product(a, b):
-    return sum([a * b for a, b in zip(a, b)])
+    return sum(ai * bi for ai, bi in zip(a, b))
 
 def softmax(x):
     max_x = max(x)
@@ -128,7 +128,7 @@ def softmax(x):
     total = sum(exp_x)
     return [i / total for i in exp_x]
 
-def Attention(q, k, v):
+def attention(q, k, v):
     output = []
     for q_item in q:
         ligne = []
@@ -145,27 +145,50 @@ def Attention(q, k, v):
 
 class AttentionHead:
     def __init__(self, embed_dim, head_dim):
-        self.wq = []
-        self.wk = []
-        self.wv = []
-        for i in range(embed_dim):
-            self.wq.append([random.uniform(-1, 1) for _ in range(head_dim)])
-            self.wk.append([random.uniform(-1, 1) for _ in range(head_dim)])
-            self.wv.append([random.uniform(-1, 1) for _ in range(head_dim)])
+        self.wq = [[random.uniform(-1, 1) for _ in range(embed_dim)] for _ in range(head_dim)]
+        self.wk = [[random.uniform(-1, 1) for _ in range(embed_dim)] for _ in range(head_dim)]
+        self.wv = [[random.uniform(-1, 1) for _ in range(embed_dim)] for _ in range(head_dim)]
+
+    def project(self, x, W):
+        return [dot_product(w, x) for w in W]
 
     def forward(self, x):
-        resultq = []
-        resultk = []
-        resultv = []
-        for key in x:
-            vecteur_q = []
-            vecteur_k = []
-            vecteur_v = []
-            for ligneq, lignek, lignev in zip(self.wq, self.wk, self.wv):
-                vecteur_q.append(dot_product(ligneq, key))
-                vecteur_k.append(dot_product(lignek, key))
-                vecteur_v.append(dot_product(lignev, key))
-            resultq.append(vecteur_q)
-            resultk.append(vecteur_k)
-            resultv.append(vecteur_v)
-        return Attention(resultq, resultk, resultv)
+        Q = [self.project(token, self.wq) for token in x]
+        K = [self.project(token, self.wk,) for token in x]
+        V = [self.project(token, self.wv) for token in x]
+        return Q, K, V
+
+def relu(x):
+    return [i if i > 0 else 0 for i in x]
+
+class FFN:
+    def __init__(self, embed_dim, FFN_dim):
+        self.w1 = [[random.uniform(-1, 1) for i in range(embed_dim)] for _ in range(FFN_dim)]
+        self.w2 = [[random.uniform(-1, 1) for i in range(FFN_dim)] for _ in range(embed_dim)]
+
+    def forward(self, x):
+        hiden = [dot_product(w, x) for w in self.w1]
+        print(hiden)
+        hiden = relu(hiden)
+        print(hiden)
+        output = [dot_product(w, hiden) for w in self.w2]
+        return output
+
+class transformerBlock:
+    def __init__(self, embed_dim, ffn_dim, head_dim):
+        self.attention_head = AttentionHead(embed_dim, head_dim)
+        self.ffn = FFN(embed_dim, ffn_dim)
+
+    def forward(self, x):
+        result_attention_head = self.attention_head.forward(x)
+        result_attention = attention(result_attention_head[0], result_attention_head[1], result_attention_head[2])
+        result_ffn = []
+        for i in result_attention:
+            result_ffn.append(self.ffn.forward(i))
+        return result_ffn
+
+
+
+
+transform = transformerBlock(1, 3, 5)
+print(transform.forward([[1, 2, 1, 2], [2, 1, 3, 2]]))
