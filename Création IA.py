@@ -1,6 +1,8 @@
 import math
 import random
 
+from Tools.scripts.var_access_benchmark import trials
+
 donnee = [(1,0), (5,1), (2,0), (8,1)]
 
 class Neurrone:
@@ -26,6 +28,7 @@ class Neurrone:
                 self.bias += lr * erreur * derive
                 total_loss += erreur ** 2
             print(total_loss / len(x))
+
 
 class NeuronneSortie:
     def __init__(self):
@@ -119,6 +122,7 @@ class Embedding:
     def forward(self, token_id):
         return self.table[token_id]
 
+
 def dot_product(a, b):
     return sum(ai * bi for ai, bi in zip(a, b))
 
@@ -168,9 +172,7 @@ class FFN:
 
     def forward(self, x):
         hiden = [dot_product(w, x) for w in self.w1]
-        print(hiden)
         hiden = relu(hiden)
-        print(hiden)
         output = [dot_product(w, hiden) for w in self.w2]
         return output
 
@@ -187,8 +189,32 @@ class transformerBlock:
             result_ffn.append(self.ffn.forward(i))
         return result_ffn
 
+class GPT:
+    def __init__(self, vocab_size, embed_dim, ffn_dim, head_dim):
+        self.tokenizer = tokenizer()
+        self.embedding = Embedding(vocab_size, embed_dim)
+        self.transformer = transformerBlock(embed_dim, ffn_dim, head_dim)
+        self.output_layer = [[random.uniform(-1, 1) for _ in range(ffn_dim)] for _ in range(vocab_size)]
+        self.fit = self.tokenizer.fit(["le chat mange une souris"])
+
+    def forward(self, textes):
+        result_tokenizer = self.tokenizer.encode(textes)
+        result_embedding = []
+        for i in result_tokenizer:
+            result_embedding.append(self.embedding.forward(i))
+        result_transformer = self.transformer.forward(result_embedding)
+        output = softmax([dot_product(result_transformer[-1], layer) for layer in self.output_layer])
+        return output
+
+def cross_entropy(probas, index):
+    return -math.log(probas[index])
+
+gpt = GPT(5, 5, 5, 5)
+
+def train_step(name, texte, vrai_index):
+    probas = name.forward(texte)
+    result = cross_entropy(probas, vrai_index)
+    return result
 
 
-
-transform = transformerBlock(1, 3, 5)
-print(transform.forward([[1, 2, 1, 2], [2, 1, 3, 2]]))
+print(train_step(gpt, "le chat mange une", 4))  # vrai mot = index 4 "souris"
