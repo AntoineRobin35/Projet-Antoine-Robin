@@ -82,23 +82,27 @@
             self.wq = cp.random.rand(self.dmodel, self.dk)
             self.wk = cp.random.rand(self.dmodel, self.dk)
             self.wv = cp.random.rand(self.dmodel, self.dv)
+            self.Q = None
+            self.K = None
+            self.V = None
+            self.A = None
 
         def softmax(self, x):
             return cp.exp(x) / cp.sum(cp.exp(x), axis=1, keepdims=True)
 
         def forward(self, x):
-            Q = x @ self.wq
-            K = x @ self.wk
-            V = x @ self.wv
+            self.Q = x @ self.wq
+            self.K = x @ self.wk
+            self.V = x @ self.wv
 
-            S = Q @ K.transpose(1, 2) / cp.sqrt(self.dk)
+            S = self.Q @ self.K.transpose(1, 2) / cp.sqrt(self.dk)
 
             mask = cp.tril(cp.ones((self.seq_len, self.seq_len)))
             S = cp.where(mask == 0, -cp.inf, S)
 
-            A = self.softmax(S)
+            self.A = self.softmax(S)
 
-            O = A @ V
+            O = self.A @ self.V
             return O
 
         def backward(self, x):
