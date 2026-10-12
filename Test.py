@@ -105,9 +105,11 @@
             O = self.A @ self.V
             return O
 
-        def backward(self, x, g):
-            J = cp.diag(self.A) cp.outer(self.A, self.A)
-            self.wq += x.transpose(1, 2) @ self.V.transpose(1, 2) @ J @ self.K * g / cp.sqrt(self.dk)
+        def backward(self, X, G):
+            grad_GVtA = (G @ self.V.T) * self.A
+            r = grad_GVtA.sum(axis=1, keepdims=True)
+            grad_Wq = (X.T @ grad_GVtA @ self.K) - X.T @ r @ self.A @ self.K
+
 
     class GPT:
         def __init__(self):
